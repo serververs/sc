@@ -312,24 +312,31 @@ function onInput(){
   document.getElementById(tab+'Url').textContent=raw+'.'+domain;
   setStatus(tab,'checking','Checking availability…');
   clearTimeout(checkTimer);
-  checkTimer=setTimeout(()=>{
-    if(TAKEN.has(raw)){
-      setStatus(tab,'taken','Already taken');
-      isOk=false;
-      document.getElementById('claimBtn').disabled=true;
-      document.getElementById('claimTxt').textContent='Name already taken';
-      if(tab==='web'){
-        const sugs=getSugs(raw);
-        if(sugs.length){
-          document.getElementById('sugChips').innerHTML=sugs.map(s=>`<span class="chip" onclick="useSug('${s}')">${s}</span>`).join('');
-          document.getElementById('sugWrap').style.display='block';
+  checkTimer=setTimeout(async()=>{
+    const domain=tab==='web'?document.getElementById('domainSelect').value:'srvx.dev';
+    try{
+      const res=await fetch(`/api/check?name=${raw}&type=${tab}&domain=${domain}`);
+      const data=await res.json();
+      if(data.available){
+        setStatus(tab,'ok','Available');
+        isOk=true;
+        document.getElementById('claimBtn').disabled=false;
+        document.getElementById('claimTxt').textContent=tab==='mc'?'Create SRV record':'Claim';
+      } else {
+        setStatus(tab,'taken',data.reason||'Already taken');
+        isOk=false;
+        document.getElementById('claimBtn').disabled=true;
+        document.getElementById('claimTxt').textContent='Name unavailable';
+        if(tab==='web'){
+          const sugs=getSugs(raw);
+          if(sugs.length){
+            document.getElementById('sugChips').innerHTML=sugs.map(s=>`<span class="chip" onclick="useSug('${s}')">${s}</span>`).join('');
+            document.getElementById('sugWrap').style.display='block';
+          }
         }
       }
-    } else {
-      setStatus(tab,'ok','Available');
-      isOk=true;
-      document.getElementById('claimBtn').disabled=false;
-      document.getElementById('claimTxt').textContent=tab==='mc'?'Create SRV record':'Claim';
+    } catch(e){
+      setStatus(tab,'warn','Check failed');
     }
   },550);
 }
@@ -347,18 +354,38 @@ async function doClaim(){
   const btn=document.getElementById('claimBtn');
   btn.classList.add('loading');
   document.getElementById('claimTxt').textContent=tab==='mc'?'Creating SRV record…':'Creating DNS record…';
-  await new Promise(r=>setTimeout(r,1400));
-  btn.classList.remove('loading');
-  btn.disabled=true;
   const domain=tab==='web'?document.getElementById('domainSelect').value:'srvx.dev';
-  const full=(tab==='mc'?'_minecraft._tcp.':'')+currentName+'.'+domain;
-  document.getElementById('claimTxt').textContent='Record claimed!';
-  document.getElementById('successUrl').textContent=full;
-  document.getElementById('successBox').classList.add('show');
-  setStatus(tab,'ok','Active');
-  TAKEN.add(currentName);
-  RECENT.unshift({name:currentName,domain:domain,type:tab,time:'just now'});
-  renderRecent();
+  let payload={name:currentName,type:tab,domain};
+  if(tab==='mc'){
+    payload.mcHost=document.getElementById('mcHost').value||'localhost';
+    payload.mcPort=parseInt(document.getElementById('mcPort').value)||25565;
+    payload.mcPriority=parseInt(document.getElementById('mcPrio').value)||0;
+    payload.mcWeight=parseInt(document.getElementById('mcWeight').value)||5;
+  }
+  try{
+    const res=await fetch('/api/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const data=await res.json();
+    btn.classList.remove('loading');
+    if(data.success){
+      btn.disabled=true;
+      document.getElementById('claimTxt').textContent='Claimed!';
+      document.getElementById('successUrl').textContent=data.url||data.domain;
+      document.getElementById('successBox').classList.add('show');
+      setStatus(tab,'ok','Active');
+      RECENT.unshift({name:currentName,domain,type:tab,time:'just now'});
+      renderRecent();
+    } else {
+      btn.disabled=false;
+      btn.classList.remove('loading');
+      document.getElementById(tab+'Error').textContent=data.error||'Claim failed';
+      document.getElementById('claimTxt').textContent='Try again';
+    }
+  } catch(e){
+    btn.classList.remove('loading');
+    btn.disabled=false;
+    document.getElementById(tab+'Error').textContent='Network error, try again';
+    document.getElementById('claimTxt').textContent='Try again';
+  }
 }
 
 function doCopy(){
