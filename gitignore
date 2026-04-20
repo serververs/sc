@@ -1,0 +1,6 @@
+node_modules/
+.env
+subdomains.db
+subdomains.db-shm
+subdomains.db-wal
+*.log
