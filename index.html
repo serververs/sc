@@ -1,0 +1,227 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);color:var(--color-text-primary)}
+.wrap{max-width:560px;margin:0 auto;padding:2rem 1rem}
+.logo{font-size:13px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.05em;margin-bottom:2rem}
+.logo span{color:var(--color-text-primary)}
+h1{font-size:22px;font-weight:500;margin-bottom:.5rem}
+.sub{font-size:15px;color:var(--color-text-secondary);margin-bottom:2rem;line-height:1.6}
+.input-row{display:flex;align-items:stretch;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-primary);transition:border-color .15s}
+.input-row:focus-within{border-color:var(--color-border-primary)}
+.input-row input{flex:1;border:none;outline:none;font-size:16px;padding:14px 16px;background:transparent;color:var(--color-text-primary);font-family:var(--font-sans)}
+.suffix{display:flex;align-items:center;padding:0 16px;font-size:15px;color:var(--color-text-secondary);border-left:0.5px solid var(--color-border-tertiary);white-space:nowrap;user-select:none}
+.preview{margin-top:1rem;min-height:40px;display:flex;align-items:center;gap:8px;font-size:14px}
+.preview-url{font-family:var(--font-mono);font-size:14px;color:var(--color-text-primary);opacity:.7}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:4px 10px;border-radius:20px}
+.badge.ok{background:var(--color-background-success);color:var(--color-text-success)}
+.badge.taken{background:var(--color-background-danger);color:var(--color-text-danger)}
+.badge.warn{background:var(--color-background-warning);color:var(--color-text-warning)}
+.badge.checking{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:var(--color-text-success)}
+.dot.taken{background:var(--color-text-danger)}
+.dot.warn{background:var(--color-text-warning)}
+.dot.spin{background:var(--color-text-secondary);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.claim-btn{width:100%;margin-top:1.25rem;padding:14px;border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-secondary);font-size:15px;font-weight:500;cursor:pointer;background:var(--color-text-primary);color:var(--color-background-primary);transition:opacity .15s,transform .1s;font-family:var(--font-sans)}
+.claim-btn:disabled{opacity:.35;cursor:not-allowed}
+.claim-btn:not(:disabled):hover{opacity:.85}
+.claim-btn:not(:disabled):active{transform:scale(0.99)}
+.claim-btn.loading{opacity:.6;pointer-events:none}
+.success-card{margin-top:1.5rem;padding:1.25rem;border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-success);background:var(--color-background-success);display:none}
+.success-card.show{display:block}
+.success-label{font-size:12px;color:var(--color-text-success);font-weight:500;margin-bottom:.5rem}
+.success-url{font-family:var(--font-mono);font-size:15px;color:var(--color-text-primary);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.copy-btn{font-size:12px;padding:5px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);cursor:pointer;color:var(--color-text-secondary);font-family:var(--font-sans);white-space:nowrap;transition:color .1s}
+.copy-btn:hover{color:var(--color-text-primary)}
+.suggestions{margin-top:1rem;display:none}
+.suggestions.show{display:block}
+.suggestions p{font-size:13px;color:var(--color-text-secondary);margin-bottom:.5rem}
+.sug-chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:13px;padding:5px 12px;border-radius:20px;border:0.5px solid var(--color-border-tertiary);cursor:pointer;background:var(--color-background-secondary);color:var(--color-text-secondary);transition:border-color .1s,color .1s;font-family:var(--font-mono)}
+.chip:hover{border-color:var(--color-border-primary);color:var(--color-text-primary)}
+.recent{margin-top:2.5rem;border-top:0.5px solid var(--color-border-tertiary);padding-top:1.5rem}
+.recent-title{font-size:13px;font-weight:500;color:var(--color-text-secondary);margin-bottom:.75rem}
+.recent-list{display:flex;flex-direction:column;gap:6px}
+.recent-item{display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:8px 12px;border-radius:var(--border-radius-md);background:var(--color-background-secondary)}
+.recent-item span:first-child{font-family:var(--font-mono);color:var(--color-text-primary)}
+.recent-item span:last-child{color:var(--color-text-secondary)}
+.error-msg{font-size:13px;color:var(--color-text-danger);margin-top:.5rem;min-height:18px}
+</style>
+<div class="wrap">
+  <h2 class="sr-only">Claim a free subdomain under srvx.dev</h2>
+  <div class="logo"><span>srvx</span>.dev — free subdomains</div>
+  <h1>Claim your subdomain</h1>
+  <p class="sub">Get a free subdomain under srvx.dev, instantly pointed to your server. No signup required.</p>
+
+  <div class="input-row">
+    <input id="nameInput" type="text" placeholder="your-project" autocomplete="off" spellcheck="false" maxlength="30" />
+    <div class="suffix">.srvx.dev</div>
+  </div>
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="preview" id="preview" style="display:none">
+    <div id="statusBadge" class="badge checking"><div class="dot spin" id="dot"></div><span id="statusText">Checking…</span></div>
+    <span class="preview-url" id="previewUrl"></span>
+  </div>
+
+  <div class="suggestions" id="suggestions">
+    <p>Try one of these:</p>
+    <div class="sug-chips" id="sugChips"></div>
+  </div>
+
+  <button class="claim-btn" id="claimBtn" disabled>Claim subdomain</button>
+
+  <div class="success-card" id="successCard">
+    <div class="success-label">Your subdomain is live</div>
+    <div class="success-url">
+      <span id="successUrl"></span>
+      <button class="copy-btn" id="copyBtn">Copy</button>
+    </div>
+  </div>
+
+  <div class="recent">
+    <div class="recent-title">Recently claimed</div>
+    <div class="recent-list" id="recentList"></div>
+  </div>
+</div>
+
+<script>
+const RESERVED = new Set(['admin','api','mail','ftp','root','server','www','ns','cdn','dev','app','blog','shop','store','help','docs','status','dashboard','billing','login','logout','signup','register','account','profile','settings','support','contact','about','home','news','media']);
+const PROFANITY = new Set(['fuck','shit','ass','dick','cock','cunt','bitch','bastard','porn','sex','nude','naked','slut','whore','nigger','faggot','retard']);
+const TAKEN = new Set(['demo','test','example','playground','myapp','coolproject','devtest','webserver','hosting']);
+
+let checkTimer=null, currentName='', statusOk=false;
+const input=document.getElementById('nameInput');
+const preview=document.getElementById('preview');
+const badge=document.getElementById('statusBadge');
+const dot=document.getElementById('dot');
+const statusText=document.getElementById('statusText');
+const previewUrl=document.getElementById('previewUrl');
+const claimBtn=document.getElementById('claimBtn');
+const successCard=document.getElementById('successCard');
+const successUrl=document.getElementById('successUrl');
+const copyBtn=document.getElementById('copyBtn');
+const suggestions=document.getElementById('suggestions');
+const sugChips=document.getElementById('sugChips');
+const errorMsg=document.getElementById('errorMsg');
+const recentList=document.getElementById('recentList');
+
+const recent=[
+  {name:'rocketship',time:'2 min ago'},
+  {name:'nexus-api',time:'5 min ago'},
+  {name:'velox',time:'11 min ago'},
+  {name:'pixelpad',time:'18 min ago'},
+  {name:'ironforge',time:'31 min ago'},
+];
+
+function renderRecent(){
+  recentList.innerHTML=recent.slice(0,5).map(r=>`
+    <div class="recent-item">
+      <span>${r.name}.srvx.dev</span>
+      <span>${r.time}</span>
+    </div>`).join('');
+}
+renderRecent();
+
+function setStatus(type,text){
+  badge.className='badge '+type;
+  dot.className='dot '+(type==='checking'?'spin':type);
+  statusText.textContent=text;
+}
+
+function validate(name){
+  if(!name) return null;
+  if(name.length<3) return{ok:false,msg:'Too short — must be at least 3 characters'};
+  if(name.length>30) return{ok:false,msg:'Too long — max 30 characters'};
+  if(!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(name)&&name.length>1) return{ok:false,msg:'Only lowercase letters, numbers, and hyphens. Must start and end with a letter or number.'};
+  if(!/^[a-z0-9-]+$/.test(name)) return{ok:false,msg:'Only lowercase letters, numbers, and hyphens allowed'};
+  if(name.includes('--')) return{ok:false,msg:'No consecutive hyphens allowed'};
+  for(const w of PROFANITY) if(name.includes(w)) return{ok:false,msg:'That name is not allowed'};
+  if(RESERVED.has(name)) return{ok:false,msg:`"${name}" is a reserved name`};
+  return{ok:true};
+}
+
+function getSuggestions(name){
+  const opts=[`${name}-app`,`${name}-dev`,`${name}-1`,`${name}-io`,`my-${name}`];
+  return opts.filter(s=>!TAKEN.has(s)&&s.length<=30).slice(0,4);
+}
+
+function checkAvailability(name){
+  setStatus('checking','Checking…');
+  suggestions.classList.remove('show');
+  clearTimeout(checkTimer);
+  checkTimer=setTimeout(()=>{
+    if(TAKEN.has(name)){
+      setStatus('taken','Already taken');
+      statusOk=false;
+      claimBtn.disabled=true;
+      const sugs=getSuggestions(name);
+      if(sugs.length){
+        sugChips.innerHTML=sugs.map(s=>`<span class="chip" onclick="useSuggestion('${s}')">${s}</span>`).join('');
+        suggestions.classList.add('show');
+      }
+    } else {
+      setStatus('ok','Available');
+      statusOk=true;
+      claimBtn.disabled=false;
+    }
+  },600);
+}
+
+window.useSuggestion=function(name){
+  input.value=name;
+  input.dispatchEvent(new Event('input'));
+};
+
+input.addEventListener('input',()=>{
+  const raw=input.value.toLowerCase().replace(/[^a-z0-9-]/g,'');
+  if(raw!==input.value) input.value=raw;
+  const name=raw;
+  currentName=name;
+  errorMsg.textContent='';
+  successCard.classList.remove('show');
+  suggestions.classList.remove('show');
+  claimBtn.disabled=true;
+  statusOk=false;
+
+  if(!name){preview.style.display='none';return;}
+  preview.style.display='flex';
+  previewUrl.textContent='https://'+name+'.srvx.dev';
+
+  const v=validate(name);
+  if(!v){preview.style.display='none';return;}
+  if(!v.ok){
+    setStatus('warn',v.msg.length>30?'Invalid name':v.msg);
+    errorMsg.textContent=v.msg;
+    return;
+  }
+  errorMsg.textContent='';
+  checkAvailability(name);
+});
+
+claimBtn.addEventListener('click',async()=>{
+  if(!statusOk||!currentName) return;
+  claimBtn.classList.add('loading');
+  claimBtn.textContent='Creating DNS record…';
+  await new Promise(r=>setTimeout(r,1400));
+  claimBtn.classList.remove('loading');
+  claimBtn.disabled=true;
+  claimBtn.textContent='Subdomain claimed';
+  const full='https://'+currentName+'.srvx.dev';
+  successUrl.textContent=full;
+  successCard.classList.add('show');
+  setStatus('ok','Active');
+  TAKEN.add(currentName);
+  recent.unshift({name:currentName,time:'just now'});
+  renderRecent();
+});
+
+copyBtn.addEventListener('click',()=>{
+  const url='https://'+currentName+'.srvx.dev';
+  navigator.clipboard.writeText(url).catch(()=>{});
+  copyBtn.textContent='Copied';
+  setTimeout(()=>copyBtn.textContent='Copy',2000);
+});
+</script>
